@@ -1,0 +1,34 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+!packages/repositories.config
+
+# Coverage and analysis output
+coverage/
+*.coverage
+*.coveragexml
+
+# IDE and tooling files
+.idea/
+*.DotSettings.user
+
+# OS files
+.DS_Store
+Thumbs.db
