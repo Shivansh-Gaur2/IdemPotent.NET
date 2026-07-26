@@ -10,7 +10,7 @@ namespace IdemPotent.Core
     public class IdempotencyOptions
     {
         public string HeaderName { get; set; } = "Idempotency-Key";
-        public ConcurrentRequestStrategy ConcurrentRequestStratergy { get; set; } = ConcurrentRequestStrategy.Reject409;
+        public ConcurrentRequestStrategy ConcurrentRequestStrategy { get; set; } = ConcurrentRequestStrategy.Reject409;
         public TimeSpan DefaultTtl { get; set; } = TimeSpan.FromHours(24);
         public int MaxWaitSeconds { get; set; } = 5;
         public int PollIntervalMs { get; set; } = 200;
