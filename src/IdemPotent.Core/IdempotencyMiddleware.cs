@@ -133,7 +133,7 @@ namespace IdemPotent.Core
 
         private async Task HandleConcurrentRequestAsync(HttpContext context, IIdempotencyStore store, string key)
         {
-            if(_options.ConcurrentRequestStratergy == ConcurrentRequestStrategy.Reject409)
+            if(_options.ConcurrentRequestStrategy == ConcurrentRequestStrategy.Reject409)
             {
                 context.Response.StatusCode = 409;
                 context.Response.Headers.RetryAfter = "1";

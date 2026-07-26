@@ -25,6 +25,9 @@ coverage/
 *.coverage
 *.coveragexml
 
+# Local-only sample applications
+/samples/
+
 # IDE and tooling files
 .idea/
 *.DotSettings.user

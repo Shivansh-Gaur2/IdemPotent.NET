@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdemPotent.Core", "src\IdemPotent.Core\IdemPotent.Core.csproj", "{5656F821-75A3-4B2C-B343-CC54DCC588A6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdemPotent.Redis", "src\IdemPotent.Redis\IdemPotent.Redis.csproj", "{91C77E9B-5948-49ED-9759-174E5393F4CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,11 +31,24 @@ Global
 		{5656F821-75A3-4B2C-B343-CC54DCC588A6}.Release|x64.Build.0 = Release|Any CPU
 		{5656F821-75A3-4B2C-B343-CC54DCC588A6}.Release|x86.ActiveCfg = Release|Any CPU
 		{5656F821-75A3-4B2C-B343-CC54DCC588A6}.Release|x86.Build.0 = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|x64.Build.0 = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Debug|x86.Build.0 = Debug|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x64.ActiveCfg = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x64.Build.0 = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x86.ActiveCfg = Release|Any CPU
+		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5656F821-75A3-4B2C-B343-CC54DCC588A6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{91C77E9B-5948-49ED-9759-174E5393F4CD} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

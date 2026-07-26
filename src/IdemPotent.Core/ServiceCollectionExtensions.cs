@@ -20,7 +20,7 @@ namespace IdemPotent.Core
             return services;
         }
 
-        public static IApplicationBuilder useIdempotency(this IApplicationBuilder app)
+        public static IApplicationBuilder UseIdempotency(this IApplicationBuilder app)
         {
             return app.UseMiddleware<IdempotencyMiddleware>();
         }
