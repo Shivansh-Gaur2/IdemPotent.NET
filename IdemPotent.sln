@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdemPotent.Core", "src\Idem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdemPotent.Redis", "src\IdemPotent.Redis\IdemPotent.Redis.csproj", "{91C77E9B-5948-49ED-9759-174E5393F4CD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdemPotent.SqlServer", "src\IdemPotent.SqlServer\IdemPotent.SqlServer.csproj", "{1CE467EA-05EE-4730-A616-99FFA22BBA28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x64.Build.0 = Release|Any CPU
 		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x86.ActiveCfg = Release|Any CPU
 		{91C77E9B-5948-49ED-9759-174E5393F4CD}.Release|x86.Build.0 = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|x64.Build.0 = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Debug|x86.Build.0 = Debug|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|x64.ActiveCfg = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|x64.Build.0 = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|x86.ActiveCfg = Release|Any CPU
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,5 +64,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{5656F821-75A3-4B2C-B343-CC54DCC588A6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{91C77E9B-5948-49ED-9759-174E5393F4CD} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{1CE467EA-05EE-4730-A616-99FFA22BBA28} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

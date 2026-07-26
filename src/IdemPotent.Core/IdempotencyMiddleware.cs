@@ -80,7 +80,7 @@ namespace IdemPotent.Core
                 ExpiresAt = DateTimeOffset.UtcNow.Add(_options.DefaultTtl)
             };
 
-            bool wonTheRace = await store.TryInsertInProgressAync(newRecord, context.RequestAborted);
+            bool wonTheRace = await store.TryInsertInProgressAsync(newRecord, context.RequestAborted);
 
             if (!wonTheRace)
             {
