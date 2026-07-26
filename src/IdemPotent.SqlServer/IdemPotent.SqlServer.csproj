@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\IdemPotent.Core\IdemPotent.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Scripts\CreateIdempotencyTable.sql">
+	    <LogicalName>IdemPotent.SqlServer.Scripts.CreateIdempotencyTable.sql</LogicalName>
+	  </EmbeddedResource>
+	  <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
+	</ItemGroup>
+
+</Project>

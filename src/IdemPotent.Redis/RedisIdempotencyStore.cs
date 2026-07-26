@@ -36,7 +36,7 @@ namespace IdemPotent.Redis
             return JsonSerializer.Deserialize<IdempotencyRecord>(json!);
         }
 
-        public async Task<bool> TryInsertInProgressAync(IdempotencyRecord record, CancellationToken ct)
+        public async Task<bool> TryInsertInProgressAsync(IdempotencyRecord record, CancellationToken ct)
         {
             var db = _redis.GetDatabase();
             var json = JsonSerializer.Serialize(record);
