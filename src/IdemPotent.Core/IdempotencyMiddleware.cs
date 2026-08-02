@@ -120,12 +120,24 @@ namespace IdemPotent.Core
             }
         }
 
-        private static bool IsIdempotentCandidate(string method) => method is "POST" or "PATCH";
+        private static bool IsIdempotentCandidate(string method) => method is "POST" or "PUT" or "PATCH";
 
         private static async Task ReplayResponseAsync(HttpContext context, IdempotencyRecord record)
         {
             context.Response.StatusCode = record.ResponseStatusCode ?? 500;
             context.Response.ContentType = "application/json";
+
+            if (!string.IsNullOrWhiteSpace(record.ResponseHeaders))
+            {
+                var headers = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(record.ResponseHeaders);
+                if (headers is not null)
+                {
+                    foreach (var header in headers)
+                    {
+                        context.Response.Headers[header.Key] = header.Value;
+                    }
+                }
+            }
 
             // Write the response body back to the main response stream
             await context.Response.WriteAsync(record.ResponseBody ?? string.Empty);
