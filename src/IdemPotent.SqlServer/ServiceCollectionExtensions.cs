@@ -1,6 +1,7 @@
 ﻿using IdemPotent.Core;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
 
 namespace IdemPotent.SqlServer;
@@ -14,6 +15,7 @@ public static class ServiceCollectionExtensions
     {
         var options = new SqlServerStoreOptions();
         configure?.Invoke(options);
+        options.Validate();
 
         if (options.AutoCreateSchema)
         {
@@ -21,6 +23,14 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddScoped<IIdempotencyStore>(_ => new SqlIdempotencyStore(connectionString));
+
+        if (options.EnableCleanup)
+        {
+            services.AddLogging();
+            services.AddSingleton(options);
+            services.AddSingleton(new SqlExpiredRecordCleanup(connectionString, options.CleanupBatchSize));
+            services.AddHostedService<SqlExpiredRecordCleanupService>();
+        }
 
         return services;
     }
