@@ -12,6 +12,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <PackageId>IdemPotent.Redis</PackageId>
+    <Description>Redis-backed idempotency store for IdemPotent ASP.NET Core middleware.</Description>
+    <PackageTags>idempotency;aspnetcore;redis;cache;api</PackageTags>
   </PropertyGroup>
 
 </Project>

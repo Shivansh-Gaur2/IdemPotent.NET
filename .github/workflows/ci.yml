@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore IdemPotent.sln
+
+      - name: Build
+        run: dotnet build IdemPotent.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test IdemPotent.sln --configuration Release --no-build --no-restore
+
+      - name: Pack NuGet packages
+        run: dotnet pack IdemPotent.sln --configuration Release --no-build --no-restore --output artifacts/packages
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages/*.*nupkg
+          if-no-files-found: error
+          retention-days: 30
