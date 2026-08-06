@@ -33,10 +33,16 @@ namespace IdemPotent.Core
                 return;
             }
 
-            string key = idempotencyKey.ToString();
+            var clientKey = idempotencyKey.ToString();
+            var key = _options.KeySelector?.Invoke(context, clientKey) ?? clientKey;
+            if (string.IsNullOrWhiteSpace(key) || key.Length > 255)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new { error = "The idempotency key must contain between 1 and 255 characters." });
+                return;
+            }
 
-            // First let me read the body and based upon that compute the fingerprint
-            context.Request.EnableBuffering(); //Since its a stream i want that it could be read multiple times
+            context.Request.EnableBuffering();
 
             using var requestBodyStream = new MemoryStream();
             await context.Request.Body.CopyToAsync(requestBodyStream);
@@ -45,7 +51,6 @@ namespace IdemPotent.Core
 
             string fingerprint = FingerprintCalculator.Compute(context.Request.Method, context.Request.Path, bodyBytes);
 
-            // Now check that i have seen this key before 
             var existingRecord = await store.GetAsync(key, context.RequestAborted);
 
             if(existingRecord is not null)
@@ -70,7 +75,6 @@ namespace IdemPotent.Core
                 }
             }
 
-            // Try to claim this key
             var newRecord = new IdempotencyRecord
             {
                 IdempotencyKey = key,
@@ -88,8 +92,7 @@ namespace IdemPotent.Core
                 return;
             }
 
-            // Now we have claimed the key, we can proceed to process the request
-            var orignalBodyStream = context.Response.Body;
+            var originalBodyStream = context.Response.Body;
 
             using var bufferStream = new MemoryStream();
             context.Response.Body = bufferStream;
@@ -101,13 +104,14 @@ namespace IdemPotent.Core
 
                 var responseBodyText = await new StreamReader(bufferStream).ReadToEndAsync();
 
-                var headersJson = System.Text.Json.JsonSerializer.Serialize(
-                    context.Response.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()));
+                var headersJson = System.Text.Json.JsonSerializer.Serialize(context.Response.Headers
+                    .Where(header => !IsDerivedOrHopByHopHeader(header.Key))
+                    .ToDictionary(header => header.Key, header => header.Value.ToString()));
 
                 await store.UpdateAsCompletedAsync(key, context.Response.StatusCode, responseBodyText, headersJson, context.RequestAborted);
 
                 bufferStream.Seek(0, SeekOrigin.Begin);
-                await bufferStream.CopyToAsync(orignalBodyStream);
+                await bufferStream.CopyToAsync(originalBodyStream, context.RequestAborted);
             }
             catch
             {
@@ -116,7 +120,7 @@ namespace IdemPotent.Core
             }
             finally
             {
-                context.Response.Body = orignalBodyStream;
+                context.Response.Body = originalBodyStream;
             }
         }
 
@@ -125,7 +129,6 @@ namespace IdemPotent.Core
         private static async Task ReplayResponseAsync(HttpContext context, IdempotencyRecord record)
         {
             context.Response.StatusCode = record.ResponseStatusCode ?? 500;
-            context.Response.ContentType = "application/json";
 
             if (!string.IsNullOrWhiteSpace(record.ResponseHeaders))
             {
@@ -139,9 +142,19 @@ namespace IdemPotent.Core
                 }
             }
 
-            // Write the response body back to the main response stream
             await context.Response.WriteAsync(record.ResponseBody ?? string.Empty);
         }
+
+        private static bool IsDerivedOrHopByHopHeader(string headerName) =>
+            headerName.Equals("Content-Length", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Connection", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Keep-Alive", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Proxy-Authenticate", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Proxy-Authorization", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("TE", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Trailer", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase) ||
+            headerName.Equals("Upgrade", StringComparison.OrdinalIgnoreCase);
 
         private async Task HandleConcurrentRequestAsync(HttpContext context, IIdempotencyStore store, string key)
         {
