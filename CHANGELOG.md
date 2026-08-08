@@ -2,7 +2,12 @@
 
 All notable changes to IdemShield.NET are documented here. The project follows [Semantic Versioning](https://semver.org/) and keeps unreleased work at the top.
 
+[Unreleased]: https://github.com/Shivansh-Gaur2/IdemShield.NET/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Shivansh-Gaur2/IdemShield.NET/releases/tag/v0.1.0
+
 ## [Unreleased]
+
+## [0.1.0] - 2026-08-08
 
 ### Added
 
