@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageId>IdemShield.SqlServer</PackageId>
+		<Title>IdemShield SQL Server Provider</Title>
+		<Description>SQL Server-backed idempotency store with coordinated expiry cleanup for ASP.NET Core APIs.</Description>
+		<PackageTags>idempotency;aspnetcore;sqlserver;database;api;retries;distributed-systems</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\IdemShield.AspNetCore\IdemShield.AspNetCore.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Scripts\CreateIdempotencyTable.sql">
+	    <LogicalName>IdemShield.SqlServer.Scripts.CreateIdempotencyTable.sql</LogicalName>
+	  </EmbeddedResource>
+	</ItemGroup>
+
+</Project>

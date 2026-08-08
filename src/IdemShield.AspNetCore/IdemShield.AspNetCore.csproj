@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>IdemShield.AspNetCore</PackageId>
+    <Title>IdemShield for ASP.NET Core</Title>
+    <Description>Idempotency middleware and storage abstractions for safe ASP.NET Core API retries.</Description>
+    <PackageTags>idempotency;aspnetcore;middleware;api;retries;distributed-systems</PackageTags>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+</Project>

@@ -17,6 +17,7 @@
 *.nupkg
 *.snupkg
 packages/
+/artifacts/
 !packages/build/
 !packages/repositories.config
 
