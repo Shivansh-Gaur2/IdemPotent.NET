@@ -1,70 +1,97 @@
-# IdemPotent.NET
+# IdemShield.NET
 
-IdemPotent prevents duplicate side effects in ASP.NET Core APIs. Send the same `Idempotency-Key` with the same `POST`, `PUT`, or `PATCH` request and the middleware returns the original saved response instead of executing the endpoint twice.
+[![CI](https://github.com/Shivansh-Gaur2/IdemShield.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/Shivansh-Gaur2/IdemShield.NET/actions/workflows/ci.yml)
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/download/dotnet/8.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+Reliable idempotency middleware for ASP.NET Core. IdemShield lets clients safely retry `POST`, `PUT`, and `PATCH` requests without repeating completed side effects.
+
+> **Release status:** `0.1.0` preview. The package artifacts are validated in CI but are not considered publicly released until the matching NuGet packages and GitHub release exist.
 
 ## Packages
 
-- `IdemPotent.Core` — middleware and storage abstraction.
-- `IdemPotent.Redis` — Redis implementation for distributed deployments.
-- `IdemPotent.SqlServer` — SQL Server implementation with automatic expiry cleanup.
+| Package | Purpose |
+|---|---|
+| `IdemShield.AspNetCore` | Middleware, configuration, and storage abstractions |
+| `IdemShield.Redis` | Distributed Redis-backed store with native record expiry |
+| `IdemShield.SqlServer` | SQL Server store with coordinated background expiry cleanup |
 
-All packages target .NET 8.
+All packages target .NET 8 and include symbols, XML documentation, the license expression, repository metadata, and this README.
 
-## Quick start
+## Install
 
-Install `IdemPotent.Core` and one storage provider:
+Install the ASP.NET Core package and one provider after the `0.1.0` packages are published:
 
 ```bash
-dotnet add package IdemPotent.Core
-dotnet add package IdemPotent.SqlServer
+dotnet add package IdemShield.AspNetCore --version 0.1.0
+dotnet add package IdemShield.SqlServer --version 0.1.0
 ```
 
-Register idempotency and your chosen store before building the application:
+For Redis, replace the second command with:
+
+```bash
+dotnet add package IdemShield.Redis --version 0.1.0
+```
+
+## 60-second setup
+
+Register the middleware and a store before building the application:
 
 ```csharp
-using IdemPotent.Core;
-using IdemPotent.SqlServer;
+using IdemShield.AspNetCore;
+using IdemShield.SqlServer;
+
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddIdempotency();
-builder.Services.UseSqlServerStore(builder.Configuration.GetConnectionString("Idempotency")!);
+builder.Services.UseSqlServerStore(
+    builder.Configuration.GetConnectionString("IdemShield")!);
 
 var app = builder.Build();
 app.UseIdempotency();
+
+app.MapPost("/orders", () => Results.Created("/orders/42", new { orderId = 42 }));
+app.Run();
 ```
 
-Clients include an idempotency key on supported requests:
+Clients retry with the same idempotency key:
 
 ```http
-POST /orders
-Idempotency-Key: order-123
+POST /orders HTTP/1.1
+Idempotency-Key: order-2026-00042
 Content-Type: application/json
 
 {"productName":"book"}
 ```
 
-The key must be unique for the operation and may be up to 255 characters. Reusing a key with a different method, path, or request body returns `422 Unprocessable Entity`; a request that is already in progress returns `409 Conflict` by default.
+The first completed response is stored. A later request with the same key and request fingerprint receives the stored response without invoking the endpoint again.
 
-For multi-tenant or user-specific APIs, scope the client key to the caller. The library leaves this opt-in because authentication models differ between applications:
+## Provider setup
+
+### Redis
 
 ```csharp
-builder.Services.AddIdempotency(options =>
+using IdemShield.Redis;
+
+builder.Services.UseRedisStore(
+    builder.Configuration.GetConnectionString("Redis")!);
+```
+
+Redis applies each record's expiry as a native key TTL.
+
+### SQL Server
+
+```csharp
+using IdemShield.SqlServer;
+
+builder.Services.UseSqlServerStore(connectionString, options =>
 {
-    options.KeySelector = (context, key) =>
-        $"{context.User.FindFirst("tenant_id")?.Value}:{key}";
+    options.CleanupInterval = TimeSpan.FromMinutes(30);
+    options.CleanupBatchSize = 500;
 });
 ```
 
-## Store configuration
-
-Redis:
-
-```csharp
-using IdemPotent.Redis;
-
-builder.Services.UseRedisStore("localhost:6379");
-```
-
-SQL Server creates the `IdempotencyRecords` table by default. Disable automatic schema creation when a DBA manages schema changes:
+SQL Server creates the `IdempotencyRecords` table by default. Disable automatic creation when schema changes are DBA-managed:
 
 ```csharp
 builder.Services.UseSqlServerStore(connectionString, options =>
@@ -73,22 +100,55 @@ builder.Services.UseSqlServerStore(connectionString, options =>
 });
 ```
 
-## Behavior
+The cleanup worker runs immediately and then at the configured interval. Multiple application instances coordinate through a SQL Server application lock so only one instance performs a cleanup batch at a time.
 
-- Only `POST`, `PUT`, and `PATCH` requests with the configured header are handled.
-- Responses are replayed with their saved status code, body, content type, and application response headers.
-- The default record TTL is 24 hours. Redis expires records natively; SQL Server ignores expired records immediately and cleans them up in the background.
+## Behavioral contract
 
-SQL Server also removes expired records in the background. The default is an immediate run at startup, then every hour in batches of 1,000. In a multi-instance deployment, SQL Server ensures only one instance cleans at a time.
+- Only `POST`, `PUT`, and `PATCH` requests containing the configured header are intercepted.
+- Keys must contain 1–255 characters after optional application-defined scoping.
+- Reusing a key with a different HTTP method, path, query string, or body returns `422 Unprocessable Entity`.
+- An in-progress request returns `409 Conflict` by default, or can poll for the completed result.
+- If endpoint execution throws, the in-progress record is removed so a later retry can run.
+- Completed responses replay the status code, body, content type, and safe application headers.
+- The default record lifetime is 24 hours.
+
+Scope keys for tenant-aware or user-aware APIs:
 
 ```csharp
-builder.Services.UseSqlServerStore(connectionString, options =>
+builder.Services.AddIdempotency(options =>
 {
-    options.CleanupInterval = TimeSpan.FromMinutes(30);
-    options.CleanupBatchSize = 500;
+    options.KeySelector = (context, clientKey) =>
+        $"{context.User.FindFirst("tenant_id")?.Value}:{clientKey}";
 });
 ```
 
+## Operational considerations
+
+- IdemShield buffers request and response bodies in memory and replays response bodies as UTF-8 text. Set application-level size limits and do not use it for binary or streaming responses.
+- Do not place secrets or personal data directly in idempotency keys.
+- SQL automatic schema creation requires DDL permission during application startup. Disable it where deployment tooling owns schema changes.
+- Store availability is part of the request path. Apply normal Redis or SQL Server resilience, monitoring, and capacity practices.
+- Idempotency prevents duplicate execution only for requests routed through this middleware and sharing the same backing store and key scope.
+
+See the focused documentation:
+
+- [Architecture](docs/architecture.md)
+- [Configuration reference](docs/configuration.md)
+- [Provider guide](docs/providers.md)
+- [Operations and failure behavior](docs/operations.md)
+- [Release process](docs/releasing.md)
+- [Versioning policy](docs/versioning.md)
+
+## Project health
+
+Every push and pull request builds the solution in Release mode, runs unit and real-provider integration tests, creates all three NuGet packages, validates package contents, audits dependencies, and compiles a clean consumer application from the generated packages.
+
+Security reports should follow [SECURITY.md](SECURITY.md). For support and compatibility expectations, see [SUPPORT.md](SUPPORT.md).
+
+## Contributing
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.
+
 ## License
 
-Licensed under the [MIT License](LICENSE).
+IdemShield.NET is licensed under the [MIT License](LICENSE).

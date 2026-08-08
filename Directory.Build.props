@@ -1,5 +1,9 @@
 <Project>
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'IdemPotent.Core' Or '$(MSBuildProjectName)' == 'IdemPotent.Redis' Or '$(MSBuildProjectName)' == 'IdemPotent.SqlServer'">
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'IdemShield.AspNetCore' Or '$(MSBuildProjectName)' == 'IdemShield.Redis' Or '$(MSBuildProjectName)' == 'IdemShield.SqlServer'">
     <IsPackable>true</IsPackable>
     <Version>0.1.0</Version>
     <Authors>Shivansh Gaur</Authors>
@@ -8,10 +12,11 @@
     <Description>Reliable idempotency support for ASP.NET Core APIs.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageProjectUrl>https://github.com/Shivansh-Gaur2/IdemPotent.NET</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Shivansh-Gaur2/IdemPotent.NET</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Shivansh-Gaur2/IdemShield.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Shivansh-Gaur2/IdemShield.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>See CHANGELOG.md for release details.</PackageReleaseNotes>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
@@ -19,11 +24,11 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
     <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts\packages\</PackageOutputPath>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsPackable)' == 'true'">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" Pack="true" PackagePath="/" Link="CHANGELOG.md" />
   </ItemGroup>
 </Project>

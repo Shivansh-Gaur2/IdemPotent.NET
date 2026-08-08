@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\IdemShield.AspNetCore\IdemShield.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" Version="3.0.17" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>IdemShield.Redis</PackageId>
+    <Title>IdemShield Redis Provider</Title>
+    <Description>Redis-backed idempotency store for IdemShield ASP.NET Core middleware.</Description>
+    <PackageTags>idempotency;aspnetcore;redis;cache;api;retries;distributed-systems</PackageTags>
+  </PropertyGroup>
+
+</Project>

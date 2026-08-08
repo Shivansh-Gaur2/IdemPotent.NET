@@ -1,0 +1,144 @@
+name: Release packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable SemVer package version (MAJOR.MINOR.PATCH)
+        required: true
+        type: string
+      publish_to_nuget:
+        description: Publish validated packages and create the GitHub release
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: IdemShield!Release2026
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'IdemShield!Release2026' -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: refs/tags/v${{ inputs.version }}
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Validate requested version
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must use stable SemVer format MAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          git fetch origin main --no-tags
+          if ! git merge-base --is-ancestor HEAD origin/main; then
+            echo "Tag v$REQUESTED_VERSION must point to a commit on main." >&2
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$REQUESTED_VERSION" >> "$GITHUB_ENV"
+
+      - name: Restore, build, format, and test
+        shell: bash
+        env:
+          IDEMSHIELD_REDIS_TEST_CONNECTION: localhost:6379
+          IDEMSHIELD_SQL_TEST_CONNECTION: Server=localhost,1433;Database=tempdb;User Id=sa;Password=IdemShield!Release2026;Encrypt=True;TrustServerCertificate=True
+        run: |
+          dotnet restore IdemShield.sln --locked-mode
+          dotnet build IdemShield.sln --configuration Release --no-restore -p:Version="$PACKAGE_VERSION"
+          dotnet format IdemShield.sln --verify-no-changes --no-restore
+          dotnet test IdemShield.sln --configuration Release --no-build --no-restore -p:Version="$PACKAGE_VERSION"
+
+      - name: Audit dependencies
+        shell: pwsh
+        run: ./eng/audit-packages.ps1
+
+      - name: Pack and validate
+        shell: pwsh
+        run: |
+          dotnet pack IdemShield.sln --configuration Release --no-build --no-restore --output artifacts/packages -p:Version="$env:PACKAGE_VERSION"
+          ./eng/verify-packages.ps1 -PackageDirectory artifacts/packages -Version "$env:PACKAGE_VERSION"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages-${{ inputs.version }}
+          path: artifacts/packages/*.*nupkg
+          if-no-files-found: error
+
+  publish:
+    if: ${{ inputs.publish_to_nuget }}
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: nuget
+    permissions:
+      contents: write
+    env:
+      PACKAGE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-packages-${{ inputs.version }}
+          path: artifacts/packages
+
+      - name: Extract changelog release notes
+        shell: bash
+        run: |
+          awk -v heading="## [$PACKAGE_VERSION]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+            END { if (!found) exit 2 }
+          ' CHANGELOG.md > artifacts/release-notes.md
+          test -s artifacts/release-notes.md
+
+      - name: Publish to NuGet
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          for package in artifacts/packages/*.nupkg; do
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v$PACKAGE_VERSION" artifacts/packages/*.*nupkg \
+            --verify-tag \
+            --notes-file artifacts/release-notes.md \
+            --title "IdemShield v$PACKAGE_VERSION"
