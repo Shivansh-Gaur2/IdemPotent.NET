@@ -21,20 +21,19 @@ public class SqlExpiredRecordCleanupIntegrationTests
         var prefix = $"cleanup-test-{Guid.NewGuid():N}";
         var expiredKey = $"{prefix}-expired";
         var activeKey = $"{prefix}-active";
+        var services = new ServiceCollection();
+        services.UseSqlServerStore(connectionString, options =>
+        {
+            options.CleanupInterval = TimeSpan.FromHours(1);
+            options.CleanupBatchSize = 100;
+        });
+        await using var provider = services.BuildServiceProvider();
+        var cleanupService = Assert.Single(provider.GetServices<IHostedService>());
 
         try
         {
             await InsertRecordAsync(connectionString, expiredKey, DateTimeOffset.UtcNow.AddMinutes(-1));
             await InsertRecordAsync(connectionString, activeKey, DateTimeOffset.UtcNow.AddHours(1));
-
-            var services = new ServiceCollection();
-            services.UseSqlServerStore(connectionString, options =>
-            {
-                options.CleanupInterval = TimeSpan.FromHours(1);
-                options.CleanupBatchSize = 100;
-            });
-            await using var provider = services.BuildServiceProvider();
-            var cleanupService = Assert.Single(provider.GetServices<IHostedService>());
 
             await cleanupService.StartAsync(CancellationToken.None);
             try

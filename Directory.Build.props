@@ -1,0 +1,29 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'IdemPotent.Core' Or '$(MSBuildProjectName)' == 'IdemPotent.Redis' Or '$(MSBuildProjectName)' == 'IdemPotent.SqlServer'">
+    <IsPackable>true</IsPackable>
+    <Version>0.1.0</Version>
+    <Authors>Shivansh Gaur</Authors>
+    <Company>Shivansh Gaur</Company>
+    <Copyright>Copyright © 2026 Shivansh Gaur</Copyright>
+    <Description>Reliable idempotency support for ASP.NET Core APIs.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageProjectUrl>https://github.com/Shivansh-Gaur2/IdemPotent.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Shivansh-Gaur2/IdemPotent.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)artifacts\packages\</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Link="README.md" />
+  </ItemGroup>
+</Project>

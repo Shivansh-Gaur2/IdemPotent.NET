@@ -7,6 +7,20 @@ namespace IdemPotent.Core.Tests;
 
 public class IdempotencyMiddlewareTests
 {
+    [Theory]
+    [InlineData(-1, 200)]
+    [InlineData(5, 0)]
+    public void Add_idempotency_rejects_invalid_polling_configuration(int maxWaitSeconds, int pollIntervalMs)
+    {
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => services.AddIdempotency(options =>
+        {
+            options.MaxWaitSeconds = maxWaitSeconds;
+            options.PollIntervalMs = pollIntervalMs;
+        }));
+    }
+
     [Fact]
     public async Task Request_without_an_idempotency_key_passes_through()
     {
@@ -50,6 +64,55 @@ public class IdempotencyMiddlewareTests
         Assert.Equal("{\"orderId\":1}", await ReadResponseAsync(first));
         Assert.Equal("{\"orderId\":1}", await ReadResponseAsync(second));
         Assert.Equal("original-request", second.Response.Headers["X-Request-Id"]);
+    }
+
+    [Fact]
+    public async Task Replay_preserves_content_type_and_custom_headers_without_replaying_content_length()
+    {
+        var executions = 0;
+        var store = new InMemoryIdempotencyStore();
+        var middleware = new IdempotencyMiddleware(
+            async context =>
+            {
+                executions++;
+                context.Response.ContentType = "text/plain; charset=utf-8";
+                context.Response.ContentLength = 4;
+                context.Response.Headers["X-Result"] = "original";
+                await context.Response.WriteAsync("done");
+            },
+            new IdempotencyOptions());
+
+        await middleware.InvokeAsync(CreateContext("POST", "same-key", "{}"), store);
+        var replay = CreateContext("POST", "same-key", "{}");
+        await middleware.InvokeAsync(replay, store);
+
+        Assert.Equal(1, executions);
+        Assert.Equal("text/plain; charset=utf-8", replay.Response.ContentType);
+        Assert.Equal("original", replay.Response.Headers["X-Result"]);
+        Assert.Equal("done", await ReadResponseAsync(replay));
+        Assert.Null(replay.Response.ContentLength);
+    }
+
+    [Fact]
+    public async Task Key_selector_can_scope_identical_client_keys_to_different_tenants()
+    {
+        var executions = 0;
+        var middleware = new IdempotencyMiddleware(
+            context =>
+            {
+                executions++;
+                return context.Response.WriteAsync("processed");
+            },
+            new IdempotencyOptions
+            {
+                KeySelector = (context, key) => $"{context.Request.Headers["X-Tenant"]}:{key}"
+            });
+        var store = new InMemoryIdempotencyStore();
+
+        await middleware.InvokeAsync(CreateContext("POST", "same-key", "{}", "tenant-a"), store);
+        await middleware.InvokeAsync(CreateContext("POST", "same-key", "{}", "tenant-b"), store);
+
+        Assert.Equal(2, executions);
     }
 
     [Fact]
@@ -161,7 +224,7 @@ public class IdempotencyMiddlewareTests
         Assert.Equal("recovered", await ReadResponseAsync(retry));
     }
 
-    private static DefaultHttpContext CreateContext(string method, string? key, string body)
+    private static DefaultHttpContext CreateContext(string method, string? key, string body, string? tenant = null)
     {
         var context = new DefaultHttpContext();
         context.Request.Method = method;
@@ -169,6 +232,10 @@ public class IdempotencyMiddlewareTests
         if (key is not null)
         {
             context.Request.Headers["Idempotency-Key"] = key;
+        }
+        if (tenant is not null)
+        {
+            context.Request.Headers["X-Tenant"] = tenant;
         }
         context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(body));
         context.Response.Body = new MemoryStream();

@@ -69,7 +69,7 @@ namespace IdemPotent.Redis
             }
             else
             {
-                await db.StringSetAsync(KeyPrefix + key, updatedJson);
+                await db.KeyDeleteAsync(KeyPrefix + key);
             }
         }
     }

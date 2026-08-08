@@ -1,33 +1,70 @@
 # IdemPotent.NET
 
-IdemPotent.NET is a .NET library for tracking idempotent request processing.
+IdemPotent prevents duplicate side effects in ASP.NET Core APIs. Send the same `Idempotency-Key` with the same `POST`, `PUT`, or `PATCH` request and the middleware returns the original saved response instead of executing the endpoint twice.
 
-## Projects
+## Packages
 
-- `src/IdemPotent.Core` — core idempotency record and status types.
-- `src/IdemPotent.Redis` — Redis-backed idempotency store.
-- `src/IdemPotent.SqlServer` — SQL Server-backed idempotency store.
+- `IdemPotent.Core` — middleware and storage abstraction.
+- `IdemPotent.Redis` — Redis implementation for distributed deployments.
+- `IdemPotent.SqlServer` — SQL Server implementation with automatic expiry cleanup.
 
-## Requirements
+All packages target .NET 8.
 
-- .NET 8 SDK
+## Quick start
 
-## Build
+Install `IdemPotent.Core` and one storage provider:
 
 ```bash
-dotnet build IdemPotent.sln
+dotnet add package IdemPotent.Core
+dotnet add package IdemPotent.SqlServer
 ```
 
-## SQL Server store
-
-Install or reference `IdemPotent.SqlServer`, then register the store during application startup:
+Register idempotency and your chosen store before building the application:
 
 ```csharp
-builder.Services.UseSqlServerStore(
-    "Server=localhost,1433;Database=IdemPotentTest;User Id=sa;Password=YourStrong@Passw0rd;Encrypt=True;TrustServerCertificate=True;");
+using IdemPotent.Core;
+using IdemPotent.SqlServer;
+
+builder.Services.AddIdempotency();
+builder.Services.UseSqlServerStore(builder.Configuration.GetConnectionString("Idempotency")!);
+
+var app = builder.Build();
+app.UseIdempotency();
 ```
 
-The configured database must already exist. The store creates the `IdempotencyRecords` table automatically by default. To disable schema creation, configure `AutoCreateSchema` as follows:
+Clients include an idempotency key on supported requests:
+
+```http
+POST /orders
+Idempotency-Key: order-123
+Content-Type: application/json
+
+{"productName":"book"}
+```
+
+The key must be unique for the operation and may be up to 255 characters. Reusing a key with a different method, path, or request body returns `422 Unprocessable Entity`; a request that is already in progress returns `409 Conflict` by default.
+
+For multi-tenant or user-specific APIs, scope the client key to the caller. The library leaves this opt-in because authentication models differ between applications:
+
+```csharp
+builder.Services.AddIdempotency(options =>
+{
+    options.KeySelector = (context, key) =>
+        $"{context.User.FindFirst("tenant_id")?.Value}:{key}";
+});
+```
+
+## Store configuration
+
+Redis:
+
+```csharp
+using IdemPotent.Redis;
+
+builder.Services.UseRedisStore("localhost:6379");
+```
+
+SQL Server creates the `IdempotencyRecords` table by default. Disable automatic schema creation when a DBA manages schema changes:
 
 ```csharp
 builder.Services.UseSqlServerStore(connectionString, options =>
@@ -36,15 +73,22 @@ builder.Services.UseSqlServerStore(connectionString, options =>
 });
 ```
 
-For a local SQL Server container, create the database before starting the application:
+## Behavior
 
-```bash
-docker run -d --name sql-local -p 1433:1433 \
-  -e "ACCEPT_EULA=Y" \
-  -e "SA_PASSWORD=YourStrong@Passw0rd" \
-  mcr.microsoft.com/mssql/server:2022-latest
+- Only `POST`, `PUT`, and `PATCH` requests with the configured header are handled.
+- Responses are replayed with their saved status code, body, content type, and application response headers.
+- The default record TTL is 24 hours. Redis expires records natively; SQL Server ignores expired records immediately and cleans them up in the background.
+
+SQL Server also removes expired records in the background. The default is an immediate run at startup, then every hour in batches of 1,000. In a multi-instance deployment, SQL Server ensures only one instance cleans at a time.
+
+```csharp
+builder.Services.UseSqlServerStore(connectionString, options =>
+{
+    options.CleanupInterval = TimeSpan.FromMinutes(30);
+    options.CleanupBatchSize = 500;
+});
 ```
 
 ## License
 
-See [LICENSE](LICENSE).
+Licensed under the [MIT License](LICENSE).

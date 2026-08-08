@@ -4,7 +4,9 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageId>IdemPotent.SqlServer</PackageId>
+		<Description>SQL Server-backed idempotency store with coordinated expiry cleanup for ASP.NET Core APIs.</Description>
+		<PackageTags>idempotency;aspnetcore;sqlserver;database;api</PackageTags>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -23,7 +25,6 @@
 	  <EmbeddedResource Include="Scripts\CreateIdempotencyTable.sql">
 	    <LogicalName>IdemPotent.SqlServer.Scripts.CreateIdempotencyTable.sql</LogicalName>
 	  </EmbeddedResource>
-	  <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
 	</ItemGroup>
 
 </Project>

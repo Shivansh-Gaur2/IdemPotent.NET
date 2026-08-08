@@ -17,7 +17,7 @@ public class SqlIdempotencyStore : IIdempotencyStore
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(ct);
 
-        const string sql = "SELECT IdempotencyKey, RequestFingerprint, Status, ResponseStatusCode, ResponseBody, ResponseHeaders, CreatedAt, ExpiresAt FROM IdempotencyRecords WHERE IdempotencyKey = @key";
+        const string sql = "SELECT IdempotencyKey, RequestFingerprint, Status, ResponseStatusCode, ResponseBody, ResponseHeaders, CreatedAt, ExpiresAt FROM IdempotencyRecords WHERE IdempotencyKey = @key AND ExpiresAt > SYSDATETIMEOFFSET()";
 
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@key", key);
@@ -45,7 +45,7 @@ public class SqlIdempotencyStore : IIdempotencyStore
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(ct);
 
-        const string sql = "INSERT INTO IdempotencyRecords (IdempotencyKey, RequestFingerprint, Status, CreatedAt, ExpiresAt) VALUES (@key, @fingerprint, @status, @createdAt, @expiresAt)";
+        const string sql = "DELETE FROM IdempotencyRecords WHERE IdempotencyKey = @key AND ExpiresAt <= SYSDATETIMEOFFSET(); INSERT INTO IdempotencyRecords (IdempotencyKey, RequestFingerprint, Status, CreatedAt, ExpiresAt) VALUES (@key, @fingerprint, @status, @createdAt, @expiresAt)";
 
         await using var command = new SqlCommand(sql, connection);
         command.Parameters.AddWithValue("@key", record.IdempotencyKey);

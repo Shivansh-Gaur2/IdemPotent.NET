@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: IdemPotent!Test2026
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'IdemPotent!Test2026' -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore IdemPotent.sln
+
+      - name: Build
+        run: dotnet build IdemPotent.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test IdemPotent.sln --configuration Release --no-build --no-restore
+        env:
+          IDEMPOTENT_SQL_TEST_CONNECTION: Server=localhost,1433;Database=tempdb;User Id=sa;Password=IdemPotent!Test2026;Encrypt=True;TrustServerCertificate=True
+
+      - name: Pack NuGet packages
+        run: dotnet pack IdemPotent.sln --configuration Release --no-build --no-restore --output artifacts/packages
+
+      - name: Validate NuGet packages
+        shell: bash
+        run: |
+          test "$(find artifacts/packages -maxdepth 1 -name '*.nupkg' -type f | wc -l)" -eq 3
+          test "$(find artifacts/packages -maxdepth 1 -name '*.snupkg' -type f | wc -l)" -eq 3
+          for package in artifacts/packages/*.nupkg; do
+            package_name=$(basename "$package" .0.1.0.nupkg)
+            unzip -l "$package" | grep -q 'README.md'
+            unzip -l "$package" | grep -q "lib/net8.0/${package_name}.dll"
+            unzip -l "$package" | grep -q "lib/net8.0/${package_name}.xml"
+            unzip -p "$package" '*.nuspec' | grep -Fq "<id>${package_name}</id>"
+            unzip -p "$package" '*.nuspec' | grep -Fq '<version>0.1.0</version>'
+            unzip -p "$package" '*.nuspec' | grep -Fq '<license type="expression">MIT</license>'
+          done
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/packages/*.*nupkg
+          if-no-files-found: error
+          retention-days: 30
