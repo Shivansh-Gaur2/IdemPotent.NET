@@ -5,11 +5,18 @@ Releases are intentionally manual and owner-controlled.
 ## One-time GitHub setup
 
 1. Create a GitHub environment named `nuget`.
-2. Add the repository secret `NUGET_API_KEY` to that environment.
-3. Configure Shivansh Gaur as a required reviewer for the environment.
-4. Protect `main` and require the CI, CodeQL, and dependency-review checks before merge.
+2. Configure Shivansh Gaur as a required reviewer for the environment.
+3. Protect `main` and require the CI, CodeQL, and dependency-review checks before merge.
+4. In the NuGet.org account settings, create a trusted publishing policy with these exact values:
+   - Policy name: `IdemShield GitHub Release`
+   - Package owner: `shivansh`
+   - CI/CD provider: `GitHub Actions`
+   - Repository owner: `Shivansh-Gaur2`
+   - Repository: `IdemShield.NET`
+   - Workflow file: `release.yml`
+   - Environment: `nuget`
 
-The workflow also requires an explicit `publish_to_nuget` confirmation, so validation-only runs cannot publish packages even when the environment is misconfigured.
+The release workflow exchanges GitHub's OpenID Connect identity for a short-lived NuGet API key. No long-lived NuGet credential is stored in GitHub. The workflow also requires an explicit `publish_to_nuget` confirmation, so validation-only runs cannot publish packages even when the environment is misconfigured.
 
 ## Prepare a release
 
